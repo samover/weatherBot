@@ -8,43 +8,55 @@
 
 'use strict';
 
-const nodeWit = require('node-wit');
-const Wit = nodeWit.Wit;
-const interactive = nodeWit.interactive;
-const witConfig = require('./config/wit');
+const express = require('express');
 
-function firstEntityValue(entities, entity) {
-    const val = entities &&
-                entities[entity] &&
-                Array.isArray(entities[entity]) &&
-                entities[entity].length > 0 &&
-                entities[entity][0].value;
+/*
+ * MODULE CONFIGURATION
+ */
+require('./config/environment.config');
+const bodyParser = require('./middlewares/bodyParser.middlewares');
+const helmet = require('./middlewares/helmet.middlewares');
+const logger = require('./middlewares/logger.middlewares');
+const errorHandler = require('./middlewares/errorHandler.middlewares');
 
-    if (!val) return null;
-    return typeof val === 'object' ? val.value : val;
-}
+/*
+ * CONSTANT DECLARATION
+ */
+const port = process.env.PORT || 3000;
 
-const actions = {
-    send: (request, response) => {
-        const { sessionId, context, entities } = request;
-        const { test, quickreplies } = response;
-        console.log('sending...', JSON.stringify(response));
-    },
-    getForecast: ({ context, entities }) => {
-        return new Promise((resolve, reject) => {
-            const location = firstEntityValue(entities, 'location');
-            if (location) {
-                context.forecast = 'sunny in ' + location;
-                delete context.missingLocation;
-            } else {
-                context.missingLocation = true;
-                delete context.forecast;
-            }
+/*
+ * APP INITIALIAZATION
+ */
+const app = express();
 
-            return resolve(context);
-        })
-    },
-};
+app.use(helmet);
+app.use(bodyParser);
 
-const client = new nodeWit.Wit({ accessToken: witConfig.accessToken, actions });
-nodeWit.interactive(client);
+if (process.env.NODE_ENV !== 'test') app.use(logger);
+
+/*
+ * ROUTE DECLARATIONS
+ */
+
+const webhooksRouter = require('./routes/webhooks.routes.js');
+
+app.get('/', (req, res, next) => {
+    res.send('Hello, World! I am a chat bot');
+})
+
+app.use('/webhooks', webhooksRouter);
+
+// Catch all unknown routes.
+app.all('*', (req, res, next) => res.sendStatus(404));
+
+app.use(errorHandler);
+
+/*
+ * START SERVER
+ */
+
+app.listen(port, () => {
+  console.info(`Server listening on port ${port}`);
+});
+
+module.exports = exports = app;

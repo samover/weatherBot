@@ -1,5 +1,5 @@
 /**
- * wit.js
+ * environment.config.js
  * src/config
  *
  * Created by samover on 15/02/2017.
@@ -8,6 +8,4 @@
 
 'use strict';
 
-module.exports = exports = {
-    accessToken: 'LKR7UJOQRJ5LBX55HGCHWA2KJY7QMCLQ',
-};
+require('dotenv').config();
